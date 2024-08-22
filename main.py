@@ -3,6 +3,8 @@ import json
 import os
 from markdown_processor import display_markdown, parse_markdown
 from translator import translate_markdown
+from gtts import gTTS
+import tempfile
 
 # File to store history
 HISTORY_FILE = "translation_history.json"
@@ -27,6 +29,13 @@ def delete_history(index):
         save_history(history)
         return True
     return False
+
+# Convert text to speech and return file path
+def text_to_speech(text, language='en'):
+    tts = gTTS(text=text, lang=language, slow=False)
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.mp3') as temp_file:
+        tts.save(temp_file.name)
+        return temp_file.name
 
 # Custom CSS for a minimalist, futuristic design
 st.markdown("""
@@ -113,7 +122,6 @@ st.markdown("""
         border-radius: 12px;
         color: #F5F5F5;
         font-family: 'Poppins', sans-serif;
-        # padding: 10px;
         transition: all 0.3s ease;
     }
     .stTextInput>div>input:focus, .stSelectbox>div>div>div:focus {
@@ -187,11 +195,32 @@ with st.sidebar:
         "Choose Your Markdown or PDF File",
         type=["md", "txt", "pdf"]
     )
-    st.session_state.target_language = st.selectbox(
+    
+    # Mapping of language codes to names
+    language_names = {
+        "es": "Spanish",
+        "fr": "French",
+        "de": "German",
+        "zh": "Chinese",
+        "hi": "Hindi",
+        "ja": "Japanese",
+        "ko": "Korean",
+        "pt": "Portuguese",
+        "ru": "Russian",
+        "ar": "Arabic",
+        "ur": "Urdu"  # Added Urdu
+    }
+    
+    # Create dropdown menu with full names and codes
+    language_options = [f"{name} ({code})" for code, name in language_names.items()]
+    selected_language = st.selectbox(
         "Select Language",
-        ["es", "fr", "de", "zh", "hi"],
-        index=["es", "fr", "de", "zh", "hi"].index(st.session_state.target_language)
+        language_options,
+        index=language_options.index(f"{language_names[st.session_state.target_language]} ({st.session_state.target_language})")
     )
+    
+    # Extract the selected language code
+    st.session_state.target_language = next(code for code, name in language_names.items() if f"{name} ({code})" == selected_language)
 
     # Display history
     st.markdown("<h2 class='stSubheader'>Translation History</h2>", unsafe_allow_html=True)
@@ -206,15 +235,6 @@ with st.sidebar:
 
     else:
         st.markdown("*No history available*")
-
-# Mapping of language codes to language names
-language_names = {
-    "es": "Spanish",
-    "fr": "French",
-    "de": "German",
-    "zh": "Chinese",
-    "hi": "Hindi"
-}
 
 # Title and description in the main area
 st.markdown("<h1 class='stTitle'>Translation Hub</h1>", unsafe_allow_html=True)
@@ -233,6 +253,14 @@ if user_prompt and st.button("Translate Prompt"):
 
         st.markdown(f"<h2 class='stSubheader'>Translated Prompt ({language_name})</h2>", unsafe_allow_html=True)
         display_markdown(st.session_state.translated_content)
+
+        # Add TTS functionality
+        audio_path = text_to_speech(st.session_state.translated_content, st.session_state.target_language)
+        st.audio(audio_path, format="audio/mp3")
+
+        # Add a button to listen to the translated content
+        if st.button("Listen to Translation (Prompt)"):
+            st.audio(audio_path, format="audio/mp3")
 
         # Save history
         new_entry = {
@@ -267,6 +295,14 @@ if uploaded_file is not None:
                 st.markdown(f"<h2 class='stSubheader'>Translated Content ({language_name})</h2>", unsafe_allow_html=True)
                 display_markdown(st.session_state.translated_content)
 
+                # Add TTS functionality
+                audio_path = text_to_speech(st.session_state.translated_content, st.session_state.target_language)
+                st.audio(audio_path, format="audio/mp3")
+
+                # Add a button to listen to the translated content
+                if st.button("Listen to Translation (File)"):
+                    st.audio(audio_path, format="audio/mp3")
+
                 # Save history
                 new_entry = {
                     "file_name": uploaded_file.name,
@@ -295,6 +331,14 @@ if st.session_state.selected_history is not None:
     history_entry = st.session_state.history[st.session_state.selected_history]
     st.markdown(f"<h2 class='stSubheader'>Translated Content ({history_entry['language_name']})</h2>", unsafe_allow_html=True)
     display_markdown(history_entry['translated_content'])
+
+    # Add TTS functionality for history
+    audio_path = text_to_speech(history_entry['translated_content'], st.session_state.target_language)
+    st.audio(audio_path, format="audio/mp3")
+
+    # Add a button to listen to the translated content
+    if st.button("Listen to Translation (History)"):
+        st.audio(audio_path, format="audio/mp3")
 
 # Clear button functionality
 if st.button("Clear"):
