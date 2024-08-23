@@ -1,6 +1,7 @@
 # app/markdown_processor.py
 import fitz  # PyMuPDF
-
+import streamlit as st
+import markdown2
 def display_markdown(content):
     """Display Markdown content in Streamlit"""
     import streamlit as st
