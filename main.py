@@ -2,7 +2,7 @@ import streamlit as st
 import json
 import os
 from markdown_processor import display_markdown, parse_markdown
-from translator import translate_markdown
+from translator import translate_markdown,parse_pdf_with_formatting
 from gtts import gTTS
 import tempfile
 
